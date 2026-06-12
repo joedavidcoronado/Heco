@@ -1,0 +1,73 @@
+.glowOnHover {
+  width: 220px;
+  height: 50px;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  background: #111;
+  cursor: pointer;
+  position: relative;
+  z-index: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.glowOnHover:before {
+  content: '';
+  /* ── GRADIENTE PERSONALIZADO: Azules, Blancos y Grises ── */
+  background: linear-gradient(
+    45deg, 
+    #0f64d2, /* Azul base */
+    #a0aec0, /* Gris intermedio */
+    #ffffff, /* Blanco brillante */
+    #3ca0f0, /* Azul claro/celeste */
+    #e2e8f0, /* Gris muy claro */
+    #00d4ff, /* Azul neón */
+    #ffffff, /* Blanco brillante */
+    #0f64d2  /* Cierre con azul base para el bucle perfecto */
+  );
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  background-size: 400%;
+  z-index: -1;
+  filter: blur(5px);
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  animation: glowing 20s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  border-radius: 10px;
+}
+
+.glowOnHover:active {
+  color: #0b0f19; /* Texto oscuro al hacer clic */
+}
+
+.glowOnHover:active:after {
+  background: transparent; /* Muestra el fondo brillante al hacer clic */
+}
+
+.glowOnHover:hover:before {
+  opacity: 1; /* Enciende el resplandor al pasar el mouse */
+}
+
+.glowOnHover:after {
+  z-index: -1;
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #0b0f19; /* El fondo interno oscuro del botón. Ajusta a tu fondo de la web */
+  left: 0;
+  top: 0;
+  border-radius: 10px;
+}
+
+@keyframes glowing {
+  0% { background-position: 0 0; }
+  50% { background-position: 400% 0; }
+  100% { background-position: 0 0; }
+}
