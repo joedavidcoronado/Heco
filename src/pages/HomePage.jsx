@@ -35,6 +35,10 @@ const MANIFESTO_LINES = [
 ];
 
 export default function HomePage() {
+  const [logoMoved, setLogoMoved] = useState(false);
+  const [blurOff, setBlurOff] = useState(false);
+  const [showTitle, setShowTitle] = useState(false);
+
   const [scrollY, setScrollY] = useState(0);
   const [navShrunk, setNavShrunk] = useState(false);
   const [entered, setEntered] = useState(false);
@@ -53,14 +57,30 @@ export default function HomePage() {
   const navInnerRef = useRef(null);
   const [linkOffset, setLinkOffset] = useState(null);
 
+  const videoRef = useRef(null);
 
-  /* ── ENTRADA ── */
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setEntered(true);
-      enteredRef.current = true;
-    }, 80);
-    return () => clearTimeout(t);
+  const handleLoadedMetadata = () => {
+    videoRef.current.playbackRate = 1; // 30% más lento
+  };
+
+
+  /* ── ENTRADA (secuencia) ── */
+useEffect(() => {
+  const t1 = setTimeout(() => {
+    setEntered(true);
+    enteredRef.current = true;
+  }, 80);
+
+  const t2 = setTimeout(() => setLogoMoved(true), 80 + 2200);          // logo se va a la esquina
+  const t3 = setTimeout(() => setBlurOff(true), 80 + 2200 + 900);      // se quita el blur (0.9s después)
+  const t4 = setTimeout(() => setShowTitle(true), 80 + 2200 + 900 + 150); // h1 aparece casi junto al blur
+
+  return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
   }, []);
 
   /* ── SCROLL ── */
@@ -99,161 +119,161 @@ export default function HomePage() {
   }, []);
 
   /* ── CANVAS ── */
-useEffect(() => {
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
 
-  const resize = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  };
-  resize();
-  window.addEventListener("resize", resize);
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
 
-  let t = 0;
+    let t = 0;
 
-  const draw = () => {
-    const W = canvas.width;
-    const H = canvas.height;
+    const draw = () => {
+      const W = canvas.width;
+      const H = canvas.height;
 
-    // Inercia del mouse
-    mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * 0.2;
-    mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * 0.2;
-    const mx = mouseRef.current.x;
-    const my = mouseRef.current.y;
+      // Inercia del mouse
+      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * 0.2;
+      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * 0.2;
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
 
-    t += 0.0018;
+      t += 0.0018;
 
-    // Paralaje del mouse — más agresivo
-    const px = (mx - 0.5) * 0.38;
-    const py = (my - 0.5) * 0.30;
+      // Paralaje del mouse — más agresivo
+      const px = (mx - 0.5) * 0.38;
+      const py = (my - 0.5) * 0.30;
 
-    ctx.clearRect(0, 0, W, H);
+      ctx.clearRect(0, 0, W, H);
 
-    // ── BASE: blanco puro ──
-    ctx.fillStyle = "#ffffff";
+      // ── BASE: blanco puro ──
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+
+      // ── CAPA 1: masa oscura navy — arriba-izquierda, gran cobertura ──
+      // Replicando la zona oscura superior de la imagen
+      {
+        const cx = (0.18 + Math.sin(t * 0.55) * 0.04 + px * 1.1) * W;
+        const cy = (0.22 + Math.cos(t * 0.40) * 0.03 + py * 1.1) * H;
+        const r  = Math.max(W, H) * 0.78;
+        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0,    "rgba(3, 12, 48, 1)");
+        g.addColorStop(0.08, "rgba(5, 20, 70, 1)");
+        g.addColorStop(0.20, "rgba(8, 45, 115, 0.98)");
+        g.addColorStop(0.38, "rgba(12, 75, 165, 0.82)");
+        g.addColorStop(0.56, "rgba(20, 115, 210, 0.45)");
+        g.addColorStop(0.75, "rgba(60, 160, 240, 0.12)");
+        g.addColorStop(1,    "rgba(180, 225, 255, 0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ── CAPA 2: azul cielo vibrante — banda diagonal inferior-derecha ──
+      // La zona azul brillante y clara de la imagen
+      {
+        const cx = (0.72 + Math.sin(t * 0.42 + 2.1) * 0.06 - px * 0.9) * W;
+        const cy = (0.72 + Math.cos(t * 0.38 + 1.3) * 0.05 - py * 0.9) * H;
+        const r  = Math.max(W, H) * 0.65;
+        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0,    "rgba(20, 155, 255, 1)");
+        g.addColorStop(0.15, "rgba(35, 165, 255, 0.95)");
+        g.addColorStop(0.35, "rgba(70, 185, 255, 0.70)");
+        g.addColorStop(0.58, "rgba(130, 210, 255, 0.30)");
+        g.addColorStop(0.80, "rgba(200, 235, 255, 0.08)");
+        g.addColorStop(1,    "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ── CAPA 3: transición media — el arco azul intermedio de la imagen ──
+      {
+        const cx = (0.48 + Math.sin(t * 0.33 + 4.2) * 0.08 + px * 0.5) * W;
+        const cy = (0.50 + Math.cos(t * 0.44 + 0.8) * 0.07 + py * 0.5) * H;
+        const r  = Math.max(W, H) * 0.52;
+        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0,    "rgba(15, 100, 210, 0.80)");
+        g.addColorStop(0.30, "rgba(30, 140, 235, 0.50)");
+        g.addColorStop(0.60, "rgba(80, 175, 250, 0.20)");
+        g.addColorStop(1,    "rgba(160, 220, 255, 0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ── CAPA 4: NEÓN — azul eléctrico puro, sigue al mouse de forma agresiva ──
+      {
+        const cx = (mx * 0.75 + 0.13) * W;
+        const cy = (my * 0.75 + 0.13) * H;
+        const r  = Math.max(W, H) * 0.32;
+        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0,    "rgba(42, 122, 229, 0.55)");
+        g.addColorStop(0.25, "rgba(42, 122, 229, 0.30)");
+        g.addColorStop(0.55, "rgba(80, 160, 255, 0.10)");
+        g.addColorStop(1,    "rgba(80, 160, 255, 0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ── CAPA 5: destello neón puntual en el cursor — muy visible ──
+      {
+        const cx = mx * W;
+        const cy = my * H;
+        const r  = Math.max(W, H) * 0.45;
+        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0,   "rgba(100, 180, 255, 0.45)");
+        g.addColorStop(0.4, "rgba(60, 140, 255, 0.18)");
+        g.addColorStop(1,   "rgba(60, 140, 255, 0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ── CAPA 6: brillo de sol — movimiento diagonal autónomo ──
+      // ── CAPA 6: brillo de sol — movimiento diagonal autónomo ──
+  {
+    const sunX = (0.25 + Math.sin(t * 0.18) * 0.55) * W;
+    const sunY = (0.20 + Math.cos(t * 0.13) * 0.45) * H;
+
+    // Entrada sincronizada con el logo
+    if (!enteredRef._startTime && enteredRef.current) {
+      enteredRef._startTime = performance.now() / 1000;
+    }
+    const now = performance.now() / 1000;
+    const elapsed = enteredRef._startTime ? now - enteredRef._startTime : 0;
+    const entryAlpha = Math.min(Math.max((elapsed - 0.3) / 2.2, 0), 1);
+
+    // Edge fade
+    const marginX = Math.min(sunX / W, (W - sunX) / W) * 6;
+    const marginY = Math.min(sunY / H, (H - sunY) / H) * 6;
+    const edgeFade = Math.min(marginX, marginY, 1);
+
+    const r = Math.max(W, H) * 0.22;
+    const g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, r);
+    g.addColorStop(0,    "rgba(255, 255, 255, 0.78)");
+    g.addColorStop(0.12, "rgba(200, 230, 255, 0.50)");
+    g.addColorStop(0.35, "rgba(120, 190, 255, 0.20)");
+    g.addColorStop(0.65, "rgba(80,  160, 255, 0.06)");
+    g.addColorStop(1,    "rgba(80,  160, 255, 0)");
+
+    ctx.globalAlpha = entryAlpha * edgeFade;
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-
-    // ── CAPA 1: masa oscura navy — arriba-izquierda, gran cobertura ──
-    // Replicando la zona oscura superior de la imagen
-    {
-      const cx = (0.18 + Math.sin(t * 0.55) * 0.04 + px * 1.1) * W;
-      const cy = (0.22 + Math.cos(t * 0.40) * 0.03 + py * 1.1) * H;
-      const r  = Math.max(W, H) * 0.78;
-      const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0,    "rgba(3, 12, 48, 1)");
-      g.addColorStop(0.08, "rgba(5, 20, 70, 1)");
-      g.addColorStop(0.20, "rgba(8, 45, 115, 0.98)");
-      g.addColorStop(0.38, "rgba(12, 75, 165, 0.82)");
-      g.addColorStop(0.56, "rgba(20, 115, 210, 0.45)");
-      g.addColorStop(0.75, "rgba(60, 160, 240, 0.12)");
-      g.addColorStop(1,    "rgba(180, 225, 255, 0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    // ── CAPA 2: azul cielo vibrante — banda diagonal inferior-derecha ──
-    // La zona azul brillante y clara de la imagen
-    {
-      const cx = (0.72 + Math.sin(t * 0.42 + 2.1) * 0.06 - px * 0.9) * W;
-      const cy = (0.72 + Math.cos(t * 0.38 + 1.3) * 0.05 - py * 0.9) * H;
-      const r  = Math.max(W, H) * 0.65;
-      const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0,    "rgba(20, 155, 255, 1)");
-      g.addColorStop(0.15, "rgba(35, 165, 255, 0.95)");
-      g.addColorStop(0.35, "rgba(70, 185, 255, 0.70)");
-      g.addColorStop(0.58, "rgba(130, 210, 255, 0.30)");
-      g.addColorStop(0.80, "rgba(200, 235, 255, 0.08)");
-      g.addColorStop(1,    "rgba(255, 255, 255, 0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    // ── CAPA 3: transición media — el arco azul intermedio de la imagen ──
-    {
-      const cx = (0.48 + Math.sin(t * 0.33 + 4.2) * 0.08 + px * 0.5) * W;
-      const cy = (0.50 + Math.cos(t * 0.44 + 0.8) * 0.07 + py * 0.5) * H;
-      const r  = Math.max(W, H) * 0.52;
-      const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0,    "rgba(15, 100, 210, 0.80)");
-      g.addColorStop(0.30, "rgba(30, 140, 235, 0.50)");
-      g.addColorStop(0.60, "rgba(80, 175, 250, 0.20)");
-      g.addColorStop(1,    "rgba(160, 220, 255, 0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    // ── CAPA 4: NEÓN — azul eléctrico puro, sigue al mouse de forma agresiva ──
-    {
-      const cx = (mx * 0.75 + 0.13) * W;
-      const cy = (my * 0.75 + 0.13) * H;
-      const r  = Math.max(W, H) * 0.32;
-      const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0,    "rgba(42, 122, 229, 0.55)");
-      g.addColorStop(0.25, "rgba(42, 122, 229, 0.30)");
-      g.addColorStop(0.55, "rgba(80, 160, 255, 0.10)");
-      g.addColorStop(1,    "rgba(80, 160, 255, 0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    // ── CAPA 5: destello neón puntual en el cursor — muy visible ──
-    {
-      const cx = mx * W;
-      const cy = my * H;
-      const r  = Math.max(W, H) * 0.45;
-      const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0,   "rgba(100, 180, 255, 0.45)");
-      g.addColorStop(0.4, "rgba(60, 140, 255, 0.18)");
-      g.addColorStop(1,   "rgba(60, 140, 255, 0)");
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    // ── CAPA 6: brillo de sol — movimiento diagonal autónomo ──
-    // ── CAPA 6: brillo de sol — movimiento diagonal autónomo ──
-{
-  const sunX = (0.25 + Math.sin(t * 0.18) * 0.55) * W;
-  const sunY = (0.20 + Math.cos(t * 0.13) * 0.45) * H;
-
-  // Entrada sincronizada con el logo
-  if (!enteredRef._startTime && enteredRef.current) {
-    enteredRef._startTime = performance.now() / 1000;
+    ctx.globalAlpha = 1;
   }
-  const now = performance.now() / 1000;
-  const elapsed = enteredRef._startTime ? now - enteredRef._startTime : 0;
-  const entryAlpha = Math.min(Math.max((elapsed - 0.3) / 2.2, 0), 1);
 
-  // Edge fade
-  const marginX = Math.min(sunX / W, (W - sunX) / W) * 6;
-  const marginY = Math.min(sunY / H, (H - sunY) / H) * 6;
-  const edgeFade = Math.min(marginX, marginY, 1);
+      animRef.current = requestAnimationFrame(draw);
+    };
 
-  const r = Math.max(W, H) * 0.22;
-  const g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, r);
-  g.addColorStop(0,    "rgba(255, 255, 255, 0.78)");
-  g.addColorStop(0.12, "rgba(200, 230, 255, 0.50)");
-  g.addColorStop(0.35, "rgba(120, 190, 255, 0.20)");
-  g.addColorStop(0.65, "rgba(80,  160, 255, 0.06)");
-  g.addColorStop(1,    "rgba(80,  160, 255, 0)");
+    draw();
 
-  ctx.globalAlpha = entryAlpha * edgeFade;
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-  ctx.globalAlpha = 1;
-}
-
-    animRef.current = requestAnimationFrame(draw);
-  };
-
-  draw();
-
-  return () => {
-    cancelAnimationFrame(animRef.current);
-    window.removeEventListener("resize", resize);
-  };
-}, []);
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
 
   /* ── INTERSECTION OBSERVER ── */
   useEffect(() => {
@@ -516,9 +536,10 @@ useEffect(() => {
 
   return (
     <div className={styles.root}>
-
+      
       {/* ── NAV ── */}
       <nav className={`${styles.nav} ${navShrunk ? styles.navShrunk : ""}`}>
+        
         <div className={`${styles.navInner} ${navLinksLeft ? styles.navInnerShrunk : ""} ${navShrunk ? styles.navInnerDark : ""}`}>
           <img
             src={logo1}
@@ -536,27 +557,39 @@ useEffect(() => {
             ))}
           </ul>
           <a href="#contacto" className={styles.navCta}>
-            Contacto
+            → Contacto
           </a>
         </div>
       </nav>
 
       {/* ── HERO ── */}
       <section className={styles.hero} ref={heroRef}>
-        <canvas ref={canvasRef} className={styles.heroCanvas} />
 
-        {/* Logo con animación de entrada */}
-        <div className={styles.heroLogoWrap}>
+        <video
+          className={`${styles.overlayVideo} ${blurOff ? styles.overlayVideoClear : ""}`}
+          autoPlay
+          loop
+          muted
+          playsInline
+          src="/yt.mp4"
+        />
+        {/*<canvas ref={canvasRef} className={styles.heroCanvas} />
+         Logo con animación de entrada */}
+        
+        <div className={`${styles.heroLogoWrap} ${logoMoved ? styles.heroLogoWrapMoved : ""}`}>
           <img
             src={logo2}
             alt="HECO"
-            className={`${styles.heroLogo} ${entered ? styles.heroLogoIn : ""}`}
+            className={`${styles.heroLogo} ${entered ? styles.heroLogoIn : ""} ${logoMoved ? styles.heroLogoMoved : ""}`}
             style={{
               transform: `scale(${entered ? logoScale : 1.18}) translateY(${entered ? -scrollY * 0.12 : 0}px)`,
               opacity: entered ? logoOpacityHero : 0,
             }}
           />
         </div>
+        <h1 className={`${styles.heroTitle} ${showTitle ? styles.heroTitleIn : ""}`}>
+          Soluciones administrativas <br /> & tecnológicas.
+        </h1>
 
         {/* Tagline con entrada */}
         <div
