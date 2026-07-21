@@ -2,14 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./HomePage.module.css";
 import logo1 from "../assets/logo.svg";
 import logo2 from "../assets/logo2.svg";
+import logo3 from "/iso.svg";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { getChatbotResponse } from "../hooks/chatbotData";
 
 const SERVICES = [
   {
     num: "01",
     title: "Ingeniería de Software",
     desc: "Diseñamos y construimos sistemas que escalan. Desde arquitectura hasta entrega, con estándares que resisten el tiempo.",
+    img: "/ff.svg"
   },
   {
     num: "02",
@@ -26,12 +29,27 @@ const SERVICES = [
     title: "Resolución de Problemas",
     desc: "Intervención en crisis operativas, técnicas y organizacionales. Metodología estructurada, velocidad quirúrgica.",
   },
+  {
+    num: "05",
+    title: "Resolución de Problemas",
+    desc: "Intervención en crisis operativas, técnicas y organizacionales. Metodología estructurada, velocidad quirúrgica.",
+  },
+  {
+    num: "06",
+    title: "Resolución de Problemas",
+    desc: "Intervención en crisis operativas, técnicas y organizacionales. Metodología estructurada, velocidad quirúrgica.",
+  },
+  {
+    num: "07",
+    title: "Resolución de Problemas",
+    desc: "Intervención en crisis operativas, técnicas y organizacionales. Metodología estructurada, velocidad quirúrgica.",
+  },
 ];
 
 const MANIFESTO_LINES = [
-  "No somos consultores que diagnostican y se van.",
+  "No somos externos que diagnostican y se van.",
   "Somos profesionales que se quedan hasta resolver.",
-  "Cada problema es una ecuación. Toda ecuación tiene solución.",
+  "Impulsamos el potencial que ya existe en tu organizacion."
 ];
 
 export default function HomePage() {
@@ -46,36 +64,108 @@ export default function HomePage() {
   const [navLinksLeft, setNavLinksLeft] = useState(false);
 
   const heroRef = useRef(null);
-  const canvasRef = useRef(null);
-  const mouseRef = useRef({ x: 0.5, y: 0.5 });
-  const mouseTargetRef = useRef({ x: 0.5, y: 0.5 });
-  const animRef = useRef(null);
   const revealRefs = useRef([]);
-  const enteredRef = useRef(false);
-  const manifestoCanvasRef = useRef(null);
-  const servicesCanvasRef = useRef(null);
-  const navInnerRef = useRef(null);
-  const [linkOffset, setLinkOffset] = useState(null);
 
-  const videoRef = useRef(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { from: "bot", type: "text", text: "¡Hola! ¿En qué puedo ayudarte hoy?" },
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
 
-  const handleLoadedMetadata = () => {
-    videoRef.current.playbackRate = 1; // 30% más lento
+  const handleSend = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed || isTyping) return;
+
+    const userMsg = { from: "user", type: "text", text: trimmed };
+    setMessages((prev) => [...prev, userMsg]);
+    setInputValue("");
+    setIsTyping(true);
+
+    const result = getChatbotResponse(trimmed);
+
+    setTimeout(() => {
+      const botMsg =
+        result.type === "options"
+          ? { from: "bot", type: "options", text: result.response, options: result.options }
+          : { from: "bot", type: "text", text: result.response };
+
+      setMessages((prev) => [...prev, botMsg]);
+      setIsTyping(false);
+    }, 900 + Math.random() * 500);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleSend();
+  };
+
+  const [pastHero, setPastHero] = useState(false);
+
+  useEffect(() => {
+    if (!heroRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setPastHero(!entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: "-80% 0px 0px 0px" }
+    );
+
+    observer.observe(heroRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Ajustá estos dos valores para cambiar el tamaño/curvatura del arco
+  const ARC_RADIUS = 150;
+  const ARC_SPAN = 170;
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [displayIndex, setDisplayIndex] = useState(0);
+  const [panelExiting, setPanelExiting] = useState(false);
+  const isFirstRender = useRef(true);
+  const wheelLock = useRef(false);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setPanelExiting(true);
+    const t = setTimeout(() => {
+      setDisplayIndex(activeIndex);
+      setPanelExiting(false);
+    }, 320);
+    return () => clearTimeout(t);
+  }, [activeIndex]);
+
+  const goTo = (i) => {
+    const clamped = Math.max(0, Math.min(SERVICES.length - 1, i));
+    setActiveIndex(clamped);
+  };
+  const goPrev = () => goTo(activeIndex - 1);
+  const goNext = () => goTo(activeIndex + 1);
+
+  const handleWheelScroll = (e) => {
+    e.preventDefault();
+    if (wheelLock.current) return;
+    wheelLock.current = true;
+    if (e.deltaY > 0) goNext(); else goPrev();
+    setTimeout(() => { wheelLock.current = false; }, 450);
+  };
+
+  const active = SERVICES[displayIndex];
 
   /* ── ENTRADA (secuencia) ── */
-useEffect(() => {
-  const t1 = setTimeout(() => {
-    setEntered(true);
-    enteredRef.current = true;
-  }, 80);
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      setEntered(true);
+    }, 80);
 
-  const t2 = setTimeout(() => setLogoMoved(true), 80 + 2200);          // logo se va a la esquina
-  const t3 = setTimeout(() => setBlurOff(true), 80 + 2200 + 900);      // se quita el blur (0.9s después)
-  const t4 = setTimeout(() => setShowTitle(true), 80 + 2200 + 900 + 150); // h1 aparece casi junto al blur
+    const t2 = setTimeout(() => setLogoMoved(true), 80 + 2200);
+    const t3 = setTimeout(() => setBlurOff(true), 80 + 2200 + 900);
+    const t4 = setTimeout(() => setShowTitle(true), 80 + 2200 + 900 + 150);
 
-  return () => {
+    return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
@@ -85,193 +175,24 @@ useEffect(() => {
 
   /* ── SCROLL ── */
   useEffect(() => {
-  let timeout = null;
-  const onScroll = () => {
-    const y = window.scrollY;
-    setScrollY(y);
-    if (y > 80) {
-      setNavShrunk(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setNavLinksLeft(true), 500);
-    } else {
-      setNavShrunk(false);
-      setNavLinksLeft(false);
-      clearTimeout(timeout);
-    }
-  };
-  window.addEventListener("scroll", onScroll, { passive: true });
-  return () => {
-    window.removeEventListener("scroll", onScroll);
-    clearTimeout(timeout);
-  };
-}, []);
-
-  /* ── MOUSE con inercia ── */
-  useEffect(() => {
-    const onMouse = (e) => {
-      mouseTargetRef.current = {
-        x: e.clientX / window.innerWidth / 0.5,
-        y: e.clientY / window.innerHeight ,
-      };
+    let timeout = null;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrollY(y);
+      if (y > 80) {
+        setNavShrunk(true);
+        clearTimeout(timeout);
+        timeout = setTimeout(() => setNavLinksLeft(true), 500);
+      } else {
+        setNavShrunk(false);
+        setNavLinksLeft(false);
+        clearTimeout(timeout);
+      }
     };
-    window.addEventListener("mousemove", onMouse);
-    return () => window.removeEventListener("mousemove", onMouse);
-  }, []);
-
-  /* ── CANVAS ── */
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    let t = 0;
-
-    const draw = () => {
-      const W = canvas.width;
-      const H = canvas.height;
-
-      // Inercia del mouse
-      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * 0.2;
-      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * 0.2;
-      const mx = mouseRef.current.x;
-      const my = mouseRef.current.y;
-
-      t += 0.0018;
-
-      // Paralaje del mouse — más agresivo
-      const px = (mx - 0.5) * 0.38;
-      const py = (my - 0.5) * 0.30;
-
-      ctx.clearRect(0, 0, W, H);
-
-      // ── BASE: blanco puro ──
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, W, H);
-
-      // ── CAPA 1: masa oscura navy — arriba-izquierda, gran cobertura ──
-      // Replicando la zona oscura superior de la imagen
-      {
-        const cx = (0.18 + Math.sin(t * 0.55) * 0.04 + px * 1.1) * W;
-        const cy = (0.22 + Math.cos(t * 0.40) * 0.03 + py * 1.1) * H;
-        const r  = Math.max(W, H) * 0.78;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(3, 12, 48, 1)");
-        g.addColorStop(0.08, "rgba(5, 20, 70, 1)");
-        g.addColorStop(0.20, "rgba(8, 45, 115, 0.98)");
-        g.addColorStop(0.38, "rgba(12, 75, 165, 0.82)");
-        g.addColorStop(0.56, "rgba(20, 115, 210, 0.45)");
-        g.addColorStop(0.75, "rgba(60, 160, 240, 0.12)");
-        g.addColorStop(1,    "rgba(180, 225, 255, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── CAPA 2: azul cielo vibrante — banda diagonal inferior-derecha ──
-      // La zona azul brillante y clara de la imagen
-      {
-        const cx = (0.72 + Math.sin(t * 0.42 + 2.1) * 0.06 - px * 0.9) * W;
-        const cy = (0.72 + Math.cos(t * 0.38 + 1.3) * 0.05 - py * 0.9) * H;
-        const r  = Math.max(W, H) * 0.65;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(20, 155, 255, 1)");
-        g.addColorStop(0.15, "rgba(35, 165, 255, 0.95)");
-        g.addColorStop(0.35, "rgba(70, 185, 255, 0.70)");
-        g.addColorStop(0.58, "rgba(130, 210, 255, 0.30)");
-        g.addColorStop(0.80, "rgba(200, 235, 255, 0.08)");
-        g.addColorStop(1,    "rgba(255, 255, 255, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── CAPA 3: transición media — el arco azul intermedio de la imagen ──
-      {
-        const cx = (0.48 + Math.sin(t * 0.33 + 4.2) * 0.08 + px * 0.5) * W;
-        const cy = (0.50 + Math.cos(t * 0.44 + 0.8) * 0.07 + py * 0.5) * H;
-        const r  = Math.max(W, H) * 0.52;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(15, 100, 210, 0.80)");
-        g.addColorStop(0.30, "rgba(30, 140, 235, 0.50)");
-        g.addColorStop(0.60, "rgba(80, 175, 250, 0.20)");
-        g.addColorStop(1,    "rgba(160, 220, 255, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── CAPA 4: NEÓN — azul eléctrico puro, sigue al mouse de forma agresiva ──
-      {
-        const cx = (mx * 0.75 + 0.13) * W;
-        const cy = (my * 0.75 + 0.13) * H;
-        const r  = Math.max(W, H) * 0.32;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(42, 122, 229, 0.55)");
-        g.addColorStop(0.25, "rgba(42, 122, 229, 0.30)");
-        g.addColorStop(0.55, "rgba(80, 160, 255, 0.10)");
-        g.addColorStop(1,    "rgba(80, 160, 255, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── CAPA 5: destello neón puntual en el cursor — muy visible ──
-      {
-        const cx = mx * W;
-        const cy = my * H;
-        const r  = Math.max(W, H) * 0.45;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,   "rgba(100, 180, 255, 0.45)");
-        g.addColorStop(0.4, "rgba(60, 140, 255, 0.18)");
-        g.addColorStop(1,   "rgba(60, 140, 255, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── CAPA 6: brillo de sol — movimiento diagonal autónomo ──
-      // ── CAPA 6: brillo de sol — movimiento diagonal autónomo ──
-  {
-    const sunX = (0.25 + Math.sin(t * 0.18) * 0.55) * W;
-    const sunY = (0.20 + Math.cos(t * 0.13) * 0.45) * H;
-
-    // Entrada sincronizada con el logo
-    if (!enteredRef._startTime && enteredRef.current) {
-      enteredRef._startTime = performance.now() / 1000;
-    }
-    const now = performance.now() / 1000;
-    const elapsed = enteredRef._startTime ? now - enteredRef._startTime : 0;
-    const entryAlpha = Math.min(Math.max((elapsed - 0.3) / 2.2, 0), 1);
-
-    // Edge fade
-    const marginX = Math.min(sunX / W, (W - sunX) / W) * 6;
-    const marginY = Math.min(sunY / H, (H - sunY) / H) * 6;
-    const edgeFade = Math.min(marginX, marginY, 1);
-
-    const r = Math.max(W, H) * 0.22;
-    const g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, r);
-    g.addColorStop(0,    "rgba(255, 255, 255, 0.78)");
-    g.addColorStop(0.12, "rgba(200, 230, 255, 0.50)");
-    g.addColorStop(0.35, "rgba(120, 190, 255, 0.20)");
-    g.addColorStop(0.65, "rgba(80,  160, 255, 0.06)");
-    g.addColorStop(1,    "rgba(80,  160, 255, 0)");
-
-    ctx.globalAlpha = entryAlpha * edgeFade;
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    ctx.globalAlpha = 1;
-  }
-
-      animRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      cancelAnimationFrame(animRef.current);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(timeout);
     };
   }, []);
 
@@ -302,251 +223,37 @@ useEffect(() => {
   const logoOpacityHero = Math.max(1 - heroProgress * 2.2, 0);
   const logoOpacityNav = Math.min((heroProgress - 0.28) * 3.5, 1);
 
+  const ROTATING_WORDS = ["Ingeniería", "Administración", "Consultoría"];
+  const [wordIndex, setWordIndex] = useState(0);
 
-  /* ── CANVAS MANIFESTO ── */
   useEffect(() => {
-    const canvas = manifestoCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let animId = null;
-    let t = 0;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const NUM_LINES = 52;
-
-    const draw = () => {
-      const W = canvas.width;
-      const H = canvas.height;
-      t += 0.022;
-
-      ctx.clearRect(0, 0, W, H);
-
-      for (let i = 0; i < NUM_LINES; i++) {
-        const progress = i / (NUM_LINES - 1); // 0 → 1 izq a der
-
-        // Ola dominó: cada línea tiene un offset de fase basado en su posición
-        const wavePhase = progress * Math.PI * 2.2;
-
-        // Altura base crece de izquierda a derecha (efecto levantado)
-        const baseHeight = 0.08 + progress * 0.55;
-
-        // Breathing — oscilación perpetua, cada línea ligeramente desfasada
-        const breathe = Math.sin(t - wavePhase) * 0.08 + Math.cos(t * 0.6 - wavePhase * 0.5) * 0.04;
-
-        // Ola dominó secundaria — movimiento suave continuo
-        const wave = Math.sin(t * 0.8 - wavePhase * 1.4) * 0.06;
-
-        const heightRatio = Math.max(baseHeight + breathe + wave, 0.04);
-        const lineH = H * heightRatio;
-
-        // Grosor: delgado por defecto, la más alta más gruesa
-        // Las últimas líneas (derecha) son más prominentes
-        const thickness = progress > 0.85
-          ? 2.5
-          : progress > 0.65
-          ? 1.5
-          : 0.8;
-
-        const x = (i / (NUM_LINES - 1)) * W;
-        const y = H - lineH;
-
-        // Opacidad — las líneas del centro/derecha más visibles
-        const opacity = 0.12 + progress * 0.55 + Math.sin(t * 0.5 - wavePhase) * 0.08;
-
-        // Gradiente vertical: azul brillante arriba, desvanece abajo
-        const grad = ctx.createLinearGradient(x, y, x, H);
-        grad.addColorStop(0,    `rgba(42, 122, 229, ${Math.min(opacity, 0.85)})`);
-        grad.addColorStop(0.3,  `rgba(42, 122, 229, ${Math.min(opacity * 0.8, 0.65)})`);
-        grad.addColorStop(0.7,  `rgba(42, 122, 229, ${Math.min(opacity * 0.4, 0.30)})`);
-        grad.addColorStop(1,    `rgba(42, 122, 229, 0)`);
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, H);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = thickness;
-        ctx.stroke();
-
-        // Punto de luz en la punta de las líneas más altas
-        if (progress > 0.5) {
-          const glowOpacity = (progress - 0.5) * 0.6 + Math.sin(t - wavePhase) * 0.1;
-          const glowR = ctx.createRadialGradient(x, y, 0, x, y, 6 + progress * 8);
-          glowR.addColorStop(0,   `rgba(100, 180, 255, ${Math.min(glowOpacity, 0.7)})`);
-          glowR.addColorStop(0.5, `rgba(42, 122, 229,  ${Math.min(glowOpacity * 0.4, 0.3)})`);
-          glowR.addColorStop(1,   `rgba(42, 122, 229, 0)`);
-          ctx.fillStyle = glowR;
-          ctx.beginPath();
-          ctx.arc(x, y, 6 + progress * 8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-    };
+    const interval = setInterval(() => {
+      setWordIndex((i) => (i + 1) % ROTATING_WORDS.length);
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
-
-  /* ── CANVAS SERVICES ── */
-  useEffect(() => {
-    const canvas = servicesCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let animId = null;
-    let t = 0;
-
-    const resize = () => {
-      canvas.width  = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const draw = () => {
-      const W = canvas.width;
-      const H = canvas.height;
-      t += 0.1;
-
-      ctx.clearRect(0, 0, W, H);
-
-      // ── BASE negro profundo ──
-      ctx.fillStyle = "#080808";
-      ctx.fillRect(0, 0, W, H);
-
-      // ── BLOB 1: masa azul oscura — arriba izquierda ──
-      {
-        const cx = (0.15 + Math.sin(t * 0.45) * 0.18) * W;
-        const cy = (0.25 + Math.cos(t * 0.38) * 0.22) * H;
-        const r  = Math.max(W, H) * 0.55;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(8,  35, 90,  0.95)");
-        g.addColorStop(0.25, "rgba(10, 50, 120, 0.70)");
-        g.addColorStop(0.55, "rgba(15, 70, 150, 0.30)");
-        g.addColorStop(1,    "rgba(8,  20, 60,  0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── BLOB 2: destello azul eléctrico — centro derecha ──
-      {
-        const cx = (0.78 + Math.sin(t * 0.32 + 1.8) * 0.22) * W;
-        const cy = (0.55 + Math.cos(t * 0.28 + 0.9) * 0.26) * H;
-        const r  = Math.max(W, H) * 0.42;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(20, 100, 220, 0.55)");
-        g.addColorStop(0.30, "rgba(30, 120, 230, 0.28)");
-        g.addColorStop(0.60, "rgba(42, 122, 229, 0.10)");
-        g.addColorStop(1,    "rgba(42, 122, 229, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── BLOB 3: neón tenue — abajo centro ──
-      {
-        const cx = (0.45 + Math.sin(t * 0.22 + 3.2) * 0.20) * W;
-        const cy = (0.82 + Math.cos(t * 0.18 + 1.4) * 0.16) * H;
-        const r  = Math.max(W, H) * 0.38;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(15, 80, 200, 0.40)");
-        g.addColorStop(0.40, "rgba(25, 100, 210, 0.18)");
-        g.addColorStop(1,    "rgba(42, 122, 229, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── BLOB 4: destello frío — arriba derecha ──
-      {
-        const cx = (0.88 + Math.sin(t * 0.40 + 5.1) * 0.17) * W;
-        const cy = (0.12 + Math.cos(t * 0.35 + 2.2) * 0.18) * H;
-        const r  = Math.max(W, H) * 0.28;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(60, 140, 255, 0.35)");
-        g.addColorStop(0.40, "rgba(42, 122, 229, 0.12)");
-        g.addColorStop(1,    "rgba(42, 122, 229, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── BLOB 5: masa oscura abajo izquierda — ancla el negro ──
-      {
-        const cx = (0.08 + Math.sin(t * 0.28 + 4.0) * 0.12) * W;
-        const cy = (0.88 + Math.cos(t * 0.22 + 3.0) * 0.13) * H;
-        const r  = Math.max(W, H) * 0.45;
-        const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0,    "rgba(4, 15, 45, 0.95)");
-        g.addColorStop(0.50, "rgba(6, 25, 70, 0.50)");
-        g.addColorStop(1,    "rgba(8, 20, 60, 0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // ── VIÑETA negra en bordes — mantiene el negro profundo en extremos ──
-      {
-        const g = ctx.createRadialGradient(
-          W * 0.5, H * 0.5, H * 0.2,
-          W * 0.5, H * 0.5, H * 0.9
-        );
-        g.addColorStop(0, "rgba(8,8,8,0)");
-        g.addColorStop(1, "rgba(8,8,8,0.82)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      animId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  useEffect(() => {
-  const calcOffset = () => {
-    const inner = navInnerRef.current;
-    const links = inner?.querySelector('ul');
-    const logo  = inner?.querySelector('img');
-    if (!inner || !links || !logo) return;
-    const innerRect = inner.getBoundingClientRect();
-    const logoRect  = logo.getBoundingClientRect();
-    const linksRect = links.getBoundingClientRect();
-    // distancia desde el centro actual hasta justo después del logo
-    const currentCenter = linksRect.left + linksRect.width / 2;
-    const targetLeft    = logoRect.right + 32; // 32px de gap
-    setLinkOffset(targetLeft - currentCenter);
-  };
-  calcOffset();
-  window.addEventListener('resize', calcOffset);
-  return () => window.removeEventListener('resize', calcOffset);
-}, []);
-
 
   return (
     <div className={styles.root}>
-      
+
       {/* ── NAV ── */}
       <nav className={`${styles.nav} ${navShrunk ? styles.navShrunk : ""}`}>
-        
+
         <div className={`${styles.navInner} ${navLinksLeft ? styles.navInnerShrunk : ""} ${navShrunk ? styles.navInnerDark : ""}`}>
-          <img
-            src={logo1}
-            alt="HECO"
-            className={styles.navLogo}
-            style={{ opacity: logoOpacityNav }}
-          />
+          <div className={styles.navLogoStack}>
+            <img
+              src={logo3}
+              alt="HECO"
+              className={styles.navLogo2}
+              style={{ opacity: 1 - logoOpacityNav }}
+            />
+            <img
+              src={logo1}
+              alt="HECO"
+              className={styles.navLogo}
+              style={{ opacity: logoOpacityNav }}
+            />
+          </div>
           <ul className={styles.navLinks}>
             {["Servicios", "Nosotros", "Contacto"].map((l) => (
               <li key={l}>
@@ -571,11 +278,10 @@ useEffect(() => {
           loop
           muted
           playsInline
+          poster="/yt-poster.jpg"
           src="/yt.mp4"
         />
-        {/*<canvas ref={canvasRef} className={styles.heroCanvas} />
-         Logo con animación de entrada */}
-        
+
         <div className={`${styles.heroLogoWrap} ${logoMoved ? styles.heroLogoWrapMoved : ""}`}>
           <img
             src={logo2}
@@ -587,38 +293,204 @@ useEffect(() => {
             }}
           />
         </div>
-        <h1 className={`${styles.heroTitle} ${showTitle ? styles.heroTitleIn : ""}`}>
-          Soluciones administrativas <br /> & tecnológicas.
-        </h1>
 
-        {/* Tagline con entrada */}
-        <div
-          className={`${styles.heroTagline} ${entered ? styles.heroTaglineIn : ""}`}
-          style={{ opacity: entered ? Math.max(1 - heroProgress * 3.5, 0) : 0 }}
-        >
-          <span>Ingeniería</span>
-          <span className={styles.dot}>·</span>
-          <span>Gobernanza</span>
-          <span className={styles.dot}>·</span>
-          <span>Resultados</span>
+        <div className={styles.heroRotatingWordWrap}>
+          <span className={styles.heroArrow}>→</span>
+          <div className={styles.heroWordWindow}>
+            <div
+              className={styles.heroWordTrack}
+              style={{
+                transform: `translateY(-${wordIndex * (100 / ROTATING_WORDS.length)}%)`,
+              }}
+            >
+              {ROTATING_WORDS.map((w) => (
+                <div key={w} className={styles.heroWordItem}>{w}</div>
+              ))}
+            </div>
+          </div>
         </div>
 
+        <h1 className={styles.heroTitle}>
+          ELEVANDO EL POTENCIAL DE TUS FORTALEZAS
+        </h1>
+        <div className={`${styles.heroChatBot} ${chatOpen ? styles.heroChatBotOpen : ""} ${pastHero ? styles.heroChatBotScrolled : ""}`}>
+          {!chatOpen && (
+            <button
+              className={styles.chatBotToggle}
+              onClick={() => setChatOpen(true)}
+              aria-label="Abrir chat"
+            >
+              <span className={styles.chatBotDot} />
+              <b>HECOBot</b>
+            </button>
+          )}
+
+          {chatOpen && (
+            <div className={styles.chatBotPanel}>
+              <div className={styles.chatBotHeader}>
+                <div className={styles.chatBotHeaderInfo}>
+                  <span className={styles.chatBotAvatar}>
+                    <img src={logo3} alt="HECO" className={styles.chatBotAvatarImg} />
+                  </span>
+                  <div className={styles.chatBotHeaderText}>
+                    <span className={styles.chatBotHeaderName}>HECOBot</span>
+                    <span className={styles.chatBotHeaderStatus}>
+                      <span className={styles.chatBotStatusDot} />
+                      Asistente virtual · En línea
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className={styles.chatBotClose}
+                  onClick={() => setChatOpen(false)}
+                  aria-label="Cerrar chat"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.chatBotMessages}>
+                {messages.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`${styles.chatBubble} ${m.from === "user" ? styles.chatBubbleUser : styles.chatBubbleBot}`}
+                  >
+                    {m.text}
+
+                    {m.type === "options" && (
+                      <div className={styles.chatOptions}>
+                        {m.options.map((opt) => (
+                          <a 
+                            key={opt.label}
+                            href={opt.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.chatOptionCard}
+                          >
+                            <span className={styles.chatOptionIcon}>
+                              {opt.icon === "whatsapp" ? "↗" : "✉"}
+                            </span>
+                            <span>
+                              <span className={styles.chatOptionLabel}>{opt.label}</span>
+                              <span className={styles.chatOptionSub}>{opt.sublabel}</span>
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {isTyping && (
+                  <div className={`${styles.chatBubble} ${styles.chatBubbleBot} ${styles.chatBubbleTyping}`}>
+                    <span className={styles.typingDot} />
+                    <span className={styles.typingDot} />
+                    <span className={styles.typingDot} />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.chatBotInputRow}>
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Escribí tu pregunta…"
+                  className={styles.chatBotInput}
+                />
+                <button className={styles.chatBotSend} onClick={handleSend} aria-label="Enviar">
+                  →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ── MANIFESTO ── */}
       <section className={styles.manifesto} id="nosotros">
-        <canvas ref={manifestoCanvasRef} className={styles.manifestoCanvas} />
         <div className={styles.manifestoContent}>
-          {MANIFESTO_LINES.map((line, i) => (
-            <p
-              key={i}
-              ref={addReveal}
-              className={styles.manifestoLine}
-              style={{ transitionDelay: `${i * 0.15}s` }}
+          <div id="lineas">
+            {MANIFESTO_LINES.map((line, i) => (
+              <p
+                key={i}
+                ref={addReveal}
+                className={styles.manifestoLine}
+                style={{ transitionDelay: `${i * 0.15}s` }}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+          <img className={styles.girarPerpetuo} src="/Recurso4.svg" alt="imagen.svg" />
+        </div>
+      </section>
+
+      {/* ── SERVICIOS ── */}
+      <section className={styles.services} id="servicios">
+
+        <div ref={addReveal} className={`${styles.revealEl} ${styles.servicesHeader}`}>
+          <span className={styles.tag}>Qué hacemos</span>
+          <h2 className={styles.sectionTitle}>Capacidades</h2>
+        </div>
+
+        <div ref={addReveal} className={`${styles.revealEl} ${styles.servicesBody}`}>
+          {/* ── RUEDA DE SELECCIÓN ── */}
+          <div className={styles.servicesWheelWrap}>
+            <div className={styles.servicesWheel} onWheel={handleWheelScroll}>
+              <div className={styles.wheelTrack}>
+                {SERVICES.map((s, i) => {
+                  const diff = i - activeIndex;
+                  const SEPARACION_BASE = 40;
+                  const compressedDiff = Math.sign(diff) * Math.pow(Math.abs(diff), 0.75);
+
+                  const angle = compressedDiff * SEPARACION_BASE;
+                  const rad = (angle * Math.PI) / 180;
+
+                  const x = Math.cos(rad) * ARC_RADIUS;
+                  const y = Math.sin(rad) * ARC_RADIUS;
+                  const isActive = i === activeIndex;
+                  return (
+                    <button
+                      key={s.num}
+                      type="button"
+                      className={`${styles.wheelDot} ${isActive ? styles.wheelDotActive : ""}`}
+                      style={{
+                        transform: `translate(${x}px, ${y}px) translate(-50%, -50%)`,
+                        opacity: isActive ? 1 : Math.max(0.25, 1 - Math.abs(angle) / 110),
+                      }}
+                      onClick={() => goTo(i)}
+                      aria-label={s.title}
+                      aria-current={isActive}
+                    >
+                      <span className={styles.wheelDotNum}>{s.num}</span>
+                      {isActive && <span className={styles.wheelDotLabel}>{s.title}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* ── PANEL DE CONTENIDO (texto + foto en row) ── */}
+          <div className={styles.serviceContent}>
+            <div
+              className={`${styles.serviceContentRow} ${
+                panelExiting ? styles.serviceContentRowExit : ""
+              }`}
             >
-              {line}
-            </p>
-          ))}
+              <div className={styles.serviceContentText}>
+                <h3 className={styles.serviceContentTitle}>{active.title}</h3>
+                <p className={styles.serviceContentDesc}>{active.desc}</p>
+              </div>
+              <img
+                src={active.img}
+                alt={active.title}
+                className={styles.serviceContentImage}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -628,8 +500,8 @@ useEffect(() => {
           <div ref={addReveal} className={`${styles.revealEl} ${styles.aboutLeft}`}>
             <span className={styles.tag}>Quiénes somos</span>
             <h2 className={styles.aboutTitle}>
-              Problema complejo.<br />
-              Solución exacta.
+              Problema complejo<br />
+              Solución exacta
             </h2>
           </div>
           <div ref={addReveal} className={`${styles.revealEl} ${styles.aboutRight}`}>
@@ -647,30 +519,6 @@ useEffect(() => {
               Eso es exactamente lo que hacemos.
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* ── SERVICIOS ── */}
-      <section className={styles.services} id="servicios">
-        <canvas ref={servicesCanvasRef} className={styles.servicesCanvas} />
-        <div ref={addReveal} className={`${styles.revealEl} ${styles.servicesHeader}`}>
-          <span className={styles.tag}>Qué hacemos</span>
-          <h2 className={styles.sectionTitle}>Capacidades.</h2>
-        </div>
-        <div className={styles.servicesGrid}>
-          {SERVICES.map((s, i) => (
-            <div
-              key={s.num}
-              ref={addReveal}
-              className={`${styles.revealEl} ${styles.serviceCard}`}
-              style={{ transitionDelay: `${i * 0.1}s` }}
-            >
-              <span className={styles.serviceNum}>{s.num}</span>
-              <h3 className={styles.serviceTitle}>{s.title}</h3>
-              <p className={styles.serviceDesc}>{s.desc}</p>
-              <span className={styles.serviceArrow}>→</span>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -714,11 +562,10 @@ useEffect(() => {
       <footer className={styles.footer}>
         <img src={logo2} alt="logo" className={styles.footerName}/>
         <div className={styles.footerDivLinks}>
-            <a href="#servicios" className={styles.footerLink}> Servicios </a>
-            <a href="#nosotros" className={styles.footerLink}> Nosotros </a>
-            <a href="#contacto" className={styles.footerLink}> Contacto </a>
+          <a href="#servicios" className={styles.footerLink}> Servicios </a>
+          <a href="#nosotros" className={styles.footerLink}> Nosotros </a>
+          <a href="#contacto" className={styles.footerLink}> Contacto </a>
         </div>
-        br
         <span className={styles.footerCopy}>
           © {new Date().getFullYear()} HECO. Todos los derechos reservados.
         </span>

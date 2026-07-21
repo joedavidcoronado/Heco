@@ -1,11 +1,5 @@
-/* src/index.css */
-@font-face {
-  font-family: "JHC Sineas Extralight";
-  src: url("/fonts/JHCSineas-Extralight.woff2") format("woff2"),
-       url("/fonts/JHCSineas-Extralight.woff")  format("woff");
-  font-weight: 200;
-  font-display: swap;
-}
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&display=swap');
+
 
 * {
   margin: 0;
