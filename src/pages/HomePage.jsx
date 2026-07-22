@@ -2,10 +2,30 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./HomePage.module.css";
 import logo1 from "../assets/logo.svg";
 import logo2 from "../assets/logo2.svg";
-import logo3 from "/iso.svg";
+import logo3 from "/HECO.svg";
+import logo4 from "/iso.svg";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { faWhatsapp, faJs } from '@fortawesome/free-brands-svg-icons';
 import { getChatbotResponse } from "../hooks/chatbotData";
+import { faComments, faCode, faBug } from '@fortawesome/free-solid-svg-icons';
+
+const MANIFESTO_CARDS = [
+  {
+    title: "Diagnóstico",
+    desc: "Analizamos tu operación sin filtros. Identificamos el problema real, no el síntoma que ya conocías.",
+    video: "/card-diagnostico.mp4",
+  },
+  {
+    title: "Ejecución",
+    desc: "Diseñamos la solución y la implementamos con vos. Nos quedamos hasta que funciona en producción.",
+    video: "/card-ejecucion.mp4",
+  },
+  {
+    title: "Resultados",
+    desc: "Medimos el impacto real. No entregamos un informe, entregamos un cambio que se sostiene en el tiempo.",
+    video: "/card-resultados.mp4",
+  },
+];
 
 const SERVICES = [
   {
@@ -47,9 +67,9 @@ const SERVICES = [
 ];
 
 const MANIFESTO_LINES = [
-  "No somos externos que diagnostican y se van.",
-  "Somos profesionales que se quedan hasta resolver.",
-  "Impulsamos el potencial que ya existe en tu organizacion."
+  "NO SOMOS EXTERNOS QUE DIAGNOSTICAN Y SE VAN.",
+  "SOMOS PROFESIONALES QUE SE QUEDAN HASTA RESOLVER.",
+  "IMPULSAMOS EL POTENCIAL QUE YA EXISTE EN TU ORGANIZACIÓN."
 ];
 
 export default function HomePage() {
@@ -72,6 +92,24 @@ export default function HomePage() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+
+  const [page, setPage] = useState(0);
+
+  const [cardsRevealed, setCardsRevealed] = useState(false);
+  const [expandedCard, setExpandedCard] = useState(1); // arranca con la del centro expandida
+  const touchStartX = useRef(null);
+  
+  const handlePointerDown = (e) => {
+    touchStartX.current = e.clientX;
+  };
+
+  const handlePointerUp = (e) => {
+    if (touchStartX.current === null) return;
+    const deltaX = e.clientX - touchStartX.current;
+    if (deltaX < -50) setPage(1);      // swipe izquierda → cards
+    if (deltaX > 50) setPage(0);       // swipe derecha → vuelve al texto
+    touchStartX.current = null;
+  };
 
   const handleSend = () => {
     const trimmed = inputValue.trim();
@@ -242,7 +280,7 @@ export default function HomePage() {
         <div className={`${styles.navInner} ${navLinksLeft ? styles.navInnerShrunk : ""} ${navShrunk ? styles.navInnerDark : ""}`}>
           <div className={styles.navLogoStack}>
             <img
-              src={logo3}
+              src={logo4}
               alt="HECO"
               className={styles.navLogo2}
               style={{ opacity: 1 - logoOpacityNav }}
@@ -320,7 +358,7 @@ export default function HomePage() {
               onClick={() => setChatOpen(true)}
               aria-label="Abrir chat"
             >
-              <span className={styles.chatBotDot} />
+              <FontAwesomeIcon icon={faComments} style={{ color: "rgb(247, 249, 251)" }} />
               <b>HECOBot</b>
             </button>
           )}
@@ -409,30 +447,91 @@ export default function HomePage() {
       </section>
 
       {/* ── MANIFESTO ── */}
-      <section className={styles.manifesto} id="nosotros">
-        <div className={styles.manifestoContent}>
-          <div id="lineas">
-            {MANIFESTO_LINES.map((line, i) => (
-              <p
-                key={i}
-                ref={addReveal}
-                className={styles.manifestoLine}
-                style={{ transitionDelay: `${i * 0.15}s` }}
-              >
-                {line}
-              </p>
-            ))}
+      <section
+        className={styles.manifesto}
+        id="nosotros"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+      >
+        <div
+          className={styles.manifestoTrack}
+          style={{ transform: `translateX(-${page * 50}%)` }}
+        >
+          {/* SLIDE 1: texto */}
+          <div className={styles.manifestoSlide}>
+            <div className={styles.manifestoContent}>
+              <div className={styles.manifestoLines}>
+                {MANIFESTO_LINES.map((line, i) => (
+                  <p
+                    key={i}
+                    ref={addReveal}
+                    className={styles.manifestoLine}
+                    style={{ transitionDelay: `${i * 0.15}s` }}
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
-          <img className={styles.girarPerpetuo} src="/Recurso4.svg" alt="imagen.svg" />
+
+          {/* SLIDE 2: cards */}
+          <div className={styles.manifestoSlide}>
+            <div className={styles.manifestoCards}>
+              {MANIFESTO_CARDS.map((card, i) => (
+                <div
+                  key={card.title}
+                  className={`${styles.manifestoCard} ${expandedCard === i ? styles.manifestoCardActive : ""}`}
+                  style={{ flex: expandedCard === i ? 6 : 1 }}
+                  onClick={() => setExpandedCard(i)}
+                >
+                  <video
+                    className={styles.manifestoCardVideo}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    src={card.video}
+                  />
+                  <div className={styles.manifestoCardOverlay} />
+                  <div className={styles.manifestoCardText}>
+                    <h3 className={styles.manifestoCardTitle}>{card.title}</h3>
+                    {expandedCard === i && (
+                      <p className={styles.manifestoCardDesc}>{card.desc}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {page === 0 && (
+          <button
+            className={styles.swipeHint}
+            onClick={() => setPage(1)}
+            aria-label="Deslizar para ver más"
+          >
+            <span className={styles.swipeHintIcon}>‹</span>
+          </button>
+        )}
+
+        {page === 1 && (
+          <button
+            className={`${styles.swipeHint} ${styles.swipeHintLeft}`}
+            onClick={() => setPage(0)}
+            aria-label="Volver"
+          >
+            <span className={styles.swipeHintIconBack}>‹</span>
+          </button>
+        )}
       </section>
 
       {/* ── SERVICIOS ── */}
       <section className={styles.services} id="servicios">
 
         <div ref={addReveal} className={`${styles.revealEl} ${styles.servicesHeader}`}>
-          <span className={styles.tag}>Qué hacemos</span>
-          <h2 className={styles.sectionTitle}>Capacidades</h2>
+          <h2 className={styles.sectionTitle}>Nuestra forma de ayudarte</h2>
         </div>
 
         <div ref={addReveal} className={`${styles.revealEl} ${styles.servicesBody}`}>
@@ -446,6 +545,7 @@ export default function HomePage() {
                   const compressedDiff = Math.sign(diff) * Math.pow(Math.abs(diff), 0.75);
 
                   const angle = compressedDiff * SEPARACION_BASE;
+                  
                   const rad = (angle * Math.PI) / 180;
 
                   const x = Math.cos(rad) * ARC_RADIUS;
@@ -483,6 +583,18 @@ export default function HomePage() {
               <div className={styles.serviceContentText}>
                 <h3 className={styles.serviceContentTitle}>{active.title}</h3>
                 <p className={styles.serviceContentDesc}>{active.desc}</p>
+                <article className={styles.iconsService}>
+                  <div>
+                    <FontAwesomeIcon icon={faCode} size="xl" />Planificación
+                  </div>
+                  <div>
+                    <FontAwesomeIcon icon={faJs} size="xl" />Desarrollo
+                  </div>
+                  <div>
+                    <FontAwesomeIcon icon={faBug} size="xl" />Mantenimiento
+                  </div>
+                </article>
+                <button className={styles.servicesMoreServices}>Ver mas</button>
               </div>
               <img
                 src={active.img}
@@ -523,23 +635,32 @@ export default function HomePage() {
       </section>
 
       {/* ── STATS ── */}
-      <section className={styles.stats}>
-        {[
-          { v: "01+", l: "Año operando" },
-          { v: "10+", l: "Proyectos entregados" },
-          { v: "2",   l: "Países" },
-          { v: "100%", l: "Compromiso con resultados" },
-        ].map(({ v, l }, i) => (
-          <div
-            key={l}
-            ref={addReveal}
-            className={`${styles.revealEl} ${styles.statItem}`}
-            style={{ transitionDelay: `${i * 0.1}s` }}
-          >
-            <span className={styles.statVal}>{v}</span>
-            <span className={styles.statLabel}>{l}</span>
-          </div>
-        ))}
+      <section className={styles.statsSection}>
+        <div className={styles.statsRow}>
+          {[
+            { v: "★★★★★", l: "Satisfacción del cliente", img: "/stat5.jpg", size: "biggest" },
+            { v: "100%", l: "Compromiso con resultados", img: "/stat4.jpg", size: "big" },
+            { v: "01+", l: "Año operando", img: "/stat1.jpg", size: "normal" },
+            { v: "10+", l: "Proyectos entregados", img: "/stat2.jpg", size: "normal" },
+            { v: "2",   l: "Países", img: "/stat3.jpg", size: "normal" },
+          ].map(({ v, l, img, size }, i) => (
+            <div
+              key={l}
+              ref={addReveal}
+              className={`${styles.revealEl} ${styles.statCard} ${styles[`statCard_${size}`]}`}
+              style={{ transitionDelay: `${i * 0.1}s`, animationDelay: `${i * 0.4}s` }}
+            >
+              <div
+                className={styles.statCardImg}
+                style={{ backgroundImage: `url(${img})` }}
+              />
+              <div className={styles.statCardText}>
+                <span className={styles.statVal}>{v}</span>
+                <span className={styles.statLabel}>{l}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ── CTA ── */}
